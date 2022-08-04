@@ -106,6 +106,7 @@ def gather_post_info():
     csv_file = input("Enter the csv file to grab structure from: ")
     if not exists(csv_file):
         print(f"{csv_file} is not found in your folder. Please try again.")
+        return False
 
     info = {"subreddit":sub,"csv_file":csv_file}
 
@@ -136,8 +137,8 @@ def gather_post_info():
 
 
 def main():
-    # if gather_app_creds():
-    gather_post_info()
+    if gather_app_creds():
+        gather_post_info()
 
 if __name__ == '__main__':
     main()

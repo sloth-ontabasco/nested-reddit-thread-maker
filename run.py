@@ -6,6 +6,7 @@ import sys
 import argparse
 
 from os.path import exists
+from os import remove
 from anytree import NodeMixin,RenderTree,PostOrderIter
 from anytree.search import findall_by_attr
 
@@ -147,6 +148,9 @@ def main():
                 for node in root.PostOrderIter():
                     node.post_obj.mod.approve()
                     node.post_obj.delete()
+            remove('reddir_tree.pickle')
+            print('All posts have been deleted.')
+            sys.exit(0)
 
     root = parse_csv()
     bottomup_thread_maker(root)
