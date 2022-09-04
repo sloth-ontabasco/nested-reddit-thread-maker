@@ -117,19 +117,28 @@ def gather_post_info():
     print(f"Found {len(header)} columns, using {len(header)-1} threads")
     clear()
 
-    print("For the following inputs you can use $NAME$ to substitute for the thread identifier")
-    title = input("Enter title for threads with no children: \n")
-    description = input("Enter description for threads with no children: \n")
-    info[-1] = {'title':title,'description':description}
+    need_root = input("Do you need the root node? If no the root post will be hidden (y/n)")
+    info['need_root'] = True if need_root == 'y' else False
+
+    # print("For the following inputs you can use $NAME$ to substitute for the thread identifier")
+    # title = input("Enter title for threads with no children: \n")
+    # description = input("Enter description for threads with no children: \n")
+    # info[-1] = {'title':title,'description':description}
+    # clear()
+
+
+    footer = input("Enter the text you wish to display after the list of children in each thread")
+    info[-1] = {'footer':footer}
 
 
     clear()
     for i in range(len(header)):
         print(f"--------------Thread Level {i}----------------")
-        print("For the following inputs you can use $NAME$ to substitute for the thread identifier")
+        print("For the following inputs you can use $NAME$ to substitute for the thread identifier and $PARENT$ for a link back to the parent of a thread.")
         title = input(f"Enter title for {'master' if i == 0 else header[i]} thread: \n")
         description = input(f"Enter description for {'master' if i == 0 else header[i]} thread: \n")
-        info[i] = {'title':title,'description':description}
+        no_child_text = input("Enter the description if this thread has no children: \n")
+        info[i] = {'title':title,'description':description,'no_child_text':no_child_text}
         clear()
 
     with open("info.json",'w') as f:
@@ -137,7 +146,9 @@ def gather_post_info():
 
 
 def main():
-    if gather_app_creds():
+    if exists('creds.json'): 
+        gather_post_info()
+    elif gather_app_creds():
         gather_post_info()
 
 if __name__ == '__main__':

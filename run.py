@@ -52,7 +52,6 @@ def parse_csv() -> ThreadPost:
     root = ThreadPost('Root',parent=None)
     with open(info['csv_file'],'r') as f:
         reader = csv.reader(f)
-
         curr_parent = root
         curr_heads = []
 
@@ -86,15 +85,15 @@ def generate_link_str(node: ThreadPost) -> str:
     link_str = ''
     if node.depth == 0:
         for child in node.children:
-            link_str += f"#{child.name}\n"
+            link_str += f"##{child.name}\n"
             for child2 in child.children:
-                link_str += f"##[{child2.name}]({child2.post_obj.url})\n"
+                link_str += f"[{child2.name}]({child2.post_obj.url})\n"
             link_str+='\n'
 
     else:
-        link_str += f"#{node.name}\n" 
+        link_str += f"##{node.name}\n" 
         for child in node.children:
-            link_str += f"##[{child.name}]({child.post_obj.url})\n"
+            link_str += f"[{child.name}]({child.post_obj.url})\n"
 
     return link_str
 
@@ -105,16 +104,23 @@ def create_post(node: ThreadPost, link_str=None) -> praw.models.Submission:
 
     print(f"Creating {node.name} thread.") 
     if node.is_leaf:
-        title = info[str(-1)]['title'].replace('$NAME$',node.name)
-        selftext = info[str(-1)]['description'].replace('$NAME$',node.name)
+        title = info[str(node.depth)]['title'].replace('$NAME$',node.name)
+        selftext = info[str(node.depth)]['no_child_text'].replace('$NAME$',node.name)
     else:
         title = info[str(node.depth)]['title'].replace('$NAME$',node.name)
         selftext = info[str(node.depth)]['description'].replace('$NAME$',node.name)
         selftext += '\n\n' + link_str
+
+    selftext += '\n\n' + info[-1]['footer']
     node.link_str = link_str
 
-    return subreddit.submit(title,selftext=selftext)
-
+    submission = subreddit.submit(title,selftext=selftext)
+    if not (node.is_leaf or node.height == 1):
+        submission.mod.lock()
+    elif not info['need_root'] and node.depth == 0:
+        submission.hide()
+    return submission
+    
 
 def save_object(root):
     """Save root into pickle"""
@@ -135,6 +141,16 @@ def bottomup_thread_maker(root):
             elif not node.is_leaf:
                 node.post_obj = create_post(node,link_str=generate_link_str(node))
 
+    #update all posts with link to parent
+    for node in root.PostOrderIter():
+        if node.depth == 0:
+            continue
+
+        post_txt = node.post_obj.selftext
+        post_txt.replace('$PARENT$',node.parent.post_obj.url)
+        node.post_obj.edit(body=post_txt)
+
+
 def main():
 
     args = parser.parse_args()
@@ -148,7 +164,7 @@ def main():
                 for node in root.PostOrderIter():
                     node.post_obj.mod.approve()
                     node.post_obj.delete()
-            remove('reddir_tree.pickle')
+            remove('reddit_tree.pickle')
             print('All posts have been deleted.')
             sys.exit(0)
 
@@ -157,6 +173,7 @@ def main():
     save_object(root)
     print("Success. Link to master thread: \n")
     print(root.post_obj.url)
+
 
 if __name__ == '__main__':
     main()
